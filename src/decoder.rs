@@ -190,7 +190,7 @@ impl<R: Read> Decoder<R> {
         // Read first 8 bytes (PNG Signature)
         let mut buf = [0u8; 8];
         reader.read_exact(&mut buf).map_err(Error::from)?;
-        if buf != crate::consts::PNG_SIGNATURE {
+        if buf != consts::PNG_SIGNATURE {
             return Err(Error::InvalidSignature);
         }
 
