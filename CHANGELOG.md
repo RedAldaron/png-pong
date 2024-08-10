@@ -4,6 +4,10 @@ All notable changes to PNG Pong will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## 0.9.2 - 2024-08-10
+### Changed
+ - Updated miniz\_oxide to v0.8
+
 ## 0.9.1 - 2024-04-03
 ### Changed
  - Lowered MSRV to 1.70
