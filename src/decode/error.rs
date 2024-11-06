@@ -9,6 +9,12 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<parsenic::error::LenError> for Error {
+    fn from(_err: parsenic::error::LenError) -> Error {
+        Self::Eof
+    }
+}
+
 /// Decoding Errors.
 #[derive(Clone, Debug)]
 #[allow(variant_size_differences)]

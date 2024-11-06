@@ -1,4 +1,9 @@
-use std::io::{Read, Write};
+use std::{
+    io::{Read, Write},
+    num::NonZeroU32,
+};
+
+use parsenic::{be::Read as _, Read as _, Reader};
 
 use crate::{
     chunk::Chunk, consts, decode::Error as DecoderError, decoder::Parser,
@@ -109,40 +114,58 @@ impl ImageHeader {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
-        // Read file
-        let width = parse.u32()?;
-        let height = parse.u32()?;
-        if width == 0 || height == 0 {
-            return Err(DecoderError::ImageDimensions);
-        }
-        let bit_depth = parse.u8()?;
-        if bit_depth == 0 || bit_depth > 16 {
-            return Err(DecoderError::BitDepth(bit_depth));
-        }
-        let color_type = match parse.u8()? {
-            0 => ColorType::Grey,
-            2 => ColorType::Rgb,
-            3 => ColorType::Palette,
-            4 => ColorType::GreyAlpha,
-            6 => ColorType::Rgba,
-            c => return Err(DecoderError::ColorType(c)),
+        let buffer: [u8; 13] = parse.bytes()?;
+        let mut reader = Reader::new(&buffer);
+        let width = NonZeroU32::new(reader.u32()?)
+            .ok_or(DecoderError::ImageDimensions)?
+            .get();
+        let height = NonZeroU32::new(reader.u32()?)
+            .ok_or(DecoderError::ImageDimensions)?
+            .get();
+        let bit_depth = {
+            let bit_depth = reader.u8()?;
+
+            (1..=16)
+                .contains(&bit_depth)
+                .then_some(bit_depth)
+                .ok_or(DecoderError::BitDepth(bit_depth))?
         };
-        color_type.check_png_color_validity(bit_depth)?;
-        if parse.u8()? != 0 {
-            /* error: only compression method 0 is allowed in the
-             * specification */
-            return Err(DecoderError::CompressionMethod);
-        }
-        if parse.u8()? != 0 {
-            /* error: only filter method 0 is allowed in the specification */
-            return Err(DecoderError::FilterMethod);
-        }
-        let interlace = match parse.u8()? {
+        let color_type = {
+            let color_type = match reader.u8()? {
+                0 => ColorType::Grey,
+                2 => ColorType::Rgb,
+                3 => ColorType::Palette,
+                4 => ColorType::GreyAlpha,
+                6 => ColorType::Rgba,
+                c => return Err(DecoderError::ColorType(c)),
+            };
+
+            color_type.check_png_color_validity(bit_depth)?;
+            color_type
+        };
+        let _compression_method = {
+            let compression_method = reader.u8()?;
+
+            // error: only compression method 0 is allowed in the specification
+            (compression_method == 0)
+                .then_some(compression_method)
+                .ok_or(DecoderError::CompressionMethod)?
+        };
+        let _filter_method = {
+            let filter_method = reader.u8()?;
+
+            // error: only filter method 0 is allowed in the specification
+            (filter_method == 0)
+                .then_some(filter_method)
+                .ok_or(DecoderError::FilterMethod)?
+        };
+        let interlace = match reader.u8()? {
             0 => false,
             1 => true,
             _ => return Err(DecoderError::InterlaceMethod),
         };
 
+        reader.end().unwrap();
         Ok(Chunk::ImageHeader(Self {
             width,
             height,

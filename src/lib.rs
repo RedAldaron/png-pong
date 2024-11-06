@@ -31,8 +31,8 @@
 //! ```
 
 #![doc(
-    html_logo_url = "https://raw.githubusercontent.com/AldaronLau/png_pong/master/res/icon.png",
-    html_favicon_url = "https://raw.githubusercontent.com/AldaronLau/png_pong/master/res/icon.png",
+    html_logo_url = "https://raw.githubusercontent.com/AldaronLau/png_pong/v0/res/icon.png",
+    html_favicon_url = "https://raw.githubusercontent.com/AldaronLau/png_pong/v0/res/icon.png",
     html_root_url = "https://docs.rs/png_pong"
 )]
 #![forbid(unsafe_code)]
@@ -62,6 +62,7 @@ mod adam7;
 mod bitstream;
 mod consts;
 mod encoder;
+mod parsing;
 mod raster;
 mod step;
 mod zlib;

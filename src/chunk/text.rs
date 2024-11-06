@@ -1,7 +1,9 @@
 use std::io::{Read, Write};
 
+use parsenic::{Read as _, Reader};
+
 use super::{Chunk, DecoderError, EncoderError};
-use crate::{consts, decoder::Parser, encoder::Enc};
+use crate::{consts, decoder::Parser, encoder::Enc, parsing::Read as _};
 
 /// Non-International Text Chunk Data (tEXt and zTXt)
 #[derive(Clone, Debug)]
@@ -19,12 +21,23 @@ impl Text {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
-        let key = parse.str()?;
-        if key.is_empty() || key.len() > 79 {
-            return Err(DecoderError::KeySize(key.len()));
-        }
-        let val = parse.string(parse.len() - (key.len() + 1))?;
+        let buffer = parse.raw()?;
+        let mut reader = Reader::new(&buffer);
+        let key = {
+            let key = reader.strz()?;
+            let key_len = key.len();
 
+            (1..=79)
+                .contains(&key_len)
+                .then_some(key)
+                .ok_or(DecoderError::KeySize(key_len))?
+        };
+        let val = String::from_utf8_lossy(
+            reader.slice(parse.len() - (key.len() + 1))?,
+        )
+        .into_owned();
+
+        reader.end().unwrap();
         Ok(Chunk::Text(Text { key, val }))
     }
 

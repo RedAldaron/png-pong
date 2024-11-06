@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 
+use parsenic::{be::Read as _, Read as _, Reader};
+
 use super::{Chunk, DecoderError, EncoderError};
 use crate::{consts, decoder::Parser, encoder::Enc};
 
@@ -34,14 +36,23 @@ impl Time {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
-        // 7 Bytes
+        let buffer: [u8; 7] = parse.bytes()?;
+        let mut reader = Reader::new(&buffer);
+        let year = reader.u16()?;
+        let month = reader.u8()?;
+        let day = reader.u8()?;
+        let hour = reader.u8()?;
+        let minute = reader.u8()?;
+        let second = reader.u8()?;
+
+        reader.end().unwrap();
         Ok(Chunk::Time(Time {
-            year: parse.u16()?,
-            month: parse.u8()?,
-            day: parse.u8()?,
-            hour: parse.u8()?,
-            minute: parse.u8()?,
-            second: parse.u8()?,
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
         }))
     }
 }

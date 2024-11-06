@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 
+use parsenic::{be::Read as _, Read as _, Reader};
+
 use super::{Chunk, DecoderError, EncoderError};
 use crate::{consts, decoder::Parser, encoder::Enc};
 
@@ -19,13 +21,30 @@ impl Background {
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
         match parse.len() {
-            1 => Ok(Chunk::Background(Background::Palette(parse.u8()?))),
-            2 => Ok(Chunk::Background(Background::Gray(parse.u16()?))),
-            6 => Ok(Chunk::Background(Background::Rgb(
-                parse.u16()?,
-                parse.u16()?,
-                parse.u16()?,
-            ))),
+            1 => {
+                let buffer: [u8; 1] = parse.bytes()?;
+                let mut reader = Reader::new(&buffer);
+                let index = reader.u8()?;
+
+                reader.end().unwrap();
+                Ok(Chunk::Background(Background::Palette(index)))
+            }
+            2 => {
+                let buffer: [u8; 2] = parse.bytes()?;
+                let mut reader = Reader::new(&buffer);
+                let value = reader.u16()?;
+
+                reader.end().unwrap();
+                Ok(Chunk::Background(Background::Gray(value)))
+            }
+            6 => {
+                let buffer: [u8; 6] = parse.bytes()?;
+                let mut reader = Reader::new(&buffer);
+                let [r, g, b] = [reader.u16()?, reader.u16()?, reader.u16()?];
+
+                reader.end().unwrap();
+                Ok(Chunk::Background(Background::Rgb(r, g, b)))
+            }
             _ => Err(DecoderError::ChunkLength(consts::BACKGROUND)),
         }
     }

@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 
+use parsenic::{be::Read as _, Read as _, Reader};
+
 use super::{Chunk, DecoderError, DecoderResult, EncoderResult};
 use crate::{consts, decoder::Parser, encoder::Enc};
 
@@ -42,13 +44,22 @@ impl Transparency {
             // Gray or RGB
             match parse.len() {
                 2 => {
-                    Ok(Chunk::Transparency(Transparency::GrayKey(parse.u16()?)))
+                    let buffer: [u8; 2] = parse.bytes()?;
+                    let mut reader = Reader::new(&buffer);
+                    let value = reader.u16()?;
+
+                    reader.end().unwrap();
+                    Ok(Chunk::Transparency(Transparency::GrayKey(value)))
                 }
-                6 => Ok(Chunk::Transparency(Transparency::RgbKey(
-                    parse.u16()?,
-                    parse.u16()?,
-                    parse.u16()?,
-                ))),
+                6 => {
+                    let buffer: [u8; 6] = parse.bytes()?;
+                    let mut reader = Reader::new(&buffer);
+                    let [r, g, b] =
+                        [reader.u16()?, reader.u16()?, reader.u16()?];
+
+                    reader.end().unwrap();
+                    Ok(Chunk::Transparency(Transparency::RgbKey(r, g, b)))
+                }
                 _ => Err(DecoderError::ChunkLength(consts::TRANSPARENCY)),
             }
         }

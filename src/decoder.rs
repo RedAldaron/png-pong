@@ -62,98 +62,27 @@ impl<R: Read> Parser<R> {
         self.vec(self.len())
     }
 
-    /// Read into a `Vec<u8>`.
-    pub(crate) fn vec(&mut self, len: usize) -> Result<Vec<u8>> {
-        let mut out = Vec::with_capacity(len);
-        for _ in 0..len {
-            out.push(self.u8()?);
-        }
-        Ok(out)
-    }
-
     /// Read entire chunk into a `Vec<u8>`.
     pub(crate) fn raw(&mut self) -> Result<Vec<u8>> {
         self.vec(self.len())
     }
 
-    /// Get a u8 out of the reader.
-    pub(crate) fn u8(&mut self) -> Result<u8> {
-        let mut byte = [0; 1];
+    /// Get an array of bytes out of the reader.
+    pub(crate) fn bytes<const N: usize>(&mut self) -> Result<[u8; N]> {
+        let mut array = [0; N];
+
         self.decode
             .reader
-            .read_exact(&mut byte)
+            .read_exact(&mut array)
             .map_err(Error::from)?;
-        let index: usize = (self.chksum as u8 ^ byte[0]).into();
-        self.chksum = consts::CRC32_LOOKUP[index] ^ (self.chksum >> 8);
-        Ok(byte[0])
-    }
 
-    /// Get a u16 out of a reader
-    pub(crate) fn u16(&mut self) -> Result<u16> {
-        Ok(u16::from_be_bytes([self.u8()?, self.u8()?]))
-    }
+        for byte in array {
+            let index: usize = (self.chksum as u8 ^ byte).into();
 
-    /// Get a u32 out of a reader
-    pub(crate) fn u32(&mut self) -> Result<u32> {
-        Ok(u32::from_be_bytes([
-            self.u8()?,
-            self.u8()?,
-            self.u8()?,
-            self.u8()?,
-        ]))
-    }
-
-    /// Get a Null terminated String out of a reader
-    pub(crate) fn str(&mut self) -> Result<String> {
-        let mut bytes = [0u8; 4];
-        let mut index = 0;
-        let mut out = String::new();
-        loop {
-            let byte = self.u8()?;
-            if byte == 0 {
-                break;
-            }
-            bytes[index] = byte;
-            index += 1;
-            match std::str::from_utf8(&bytes[0..index]) {
-                Ok(c) => {
-                    out.push_str(c);
-                    index = 0;
-                }
-                Err(e) => {
-                    if e.error_len().is_some() {
-                        out.push(std::char::REPLACEMENT_CHARACTER);
-                        index = 0;
-                    }
-                }
-            }
+            self.chksum = consts::CRC32_LOOKUP[index] ^ (self.chksum >> 8);
         }
-        Ok(out)
-    }
 
-    /// Get a String out of a reader
-    pub(crate) fn string(&mut self, length: usize) -> Result<String> {
-        let mut bytes = [0u8; 4];
-        let mut index = 0;
-        let mut out = String::new();
-        for _ in 0..length {
-            let byte = self.u8()?;
-            bytes[index] = byte;
-            index += 1;
-            match std::str::from_utf8(&bytes[0..index]) {
-                Ok(c) => {
-                    out.push_str(c);
-                    index = 0;
-                }
-                Err(e) => {
-                    if e.error_len().is_some() {
-                        out.push(std::char::REPLACEMENT_CHARACTER);
-                        index = 0;
-                    }
-                }
-            }
-        }
-        Ok(out)
+        Ok(array)
     }
 
     /// Check if the CRC matches calculated CRC.
@@ -164,6 +93,20 @@ impl<R: Read> Parser<R> {
             return Err(Error::Crc32(*name));
         }
         Ok(())
+    }
+
+    /// Get a u8 out of the reader.
+    fn u8(&mut self) -> Result<u8> {
+        self.bytes().map(|[byte]| byte)
+    }
+
+    /// Read into a `Vec<u8>`.
+    fn vec(&mut self, len: usize) -> Result<Vec<u8>> {
+        let mut out = Vec::with_capacity(len);
+        for _ in 0..len {
+            out.push(self.u8()?);
+        }
+        Ok(out)
     }
 }
 

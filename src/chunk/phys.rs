@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 
+use parsenic::{be::Read as _, Read as _, Reader};
+
 use super::{Chunk, DecoderError, EncoderError};
 use crate::{consts, decoder::Parser, encoder::Enc};
 
@@ -29,15 +31,17 @@ impl Physical {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
-        // 9 bytes
-        let ppu_x = parse.u32()?;
-        let ppu_y = parse.u32()?;
-        let is_meter = match parse.u8()? {
+        let buffer: [u8; 9] = parse.bytes()?;
+        let mut reader = Reader::new(&buffer);
+        let ppu_x = reader.u32()?;
+        let ppu_y = reader.u32()?;
+        let is_meter = match reader.u8()? {
             0 => false,
             1 => true,
             _ => return Err(DecoderError::PhysUnits),
         };
 
+        reader.end().unwrap();
         Ok(Chunk::Physical(Physical {
             ppu_x,
             ppu_y,

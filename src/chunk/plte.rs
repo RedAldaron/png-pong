@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 
+use parsenic::{Read as _, Reader};
 use pix::rgb::{Rgb, SRgb8};
 
 use super::{Chunk, DecoderError, EncoderError};
@@ -18,13 +19,18 @@ impl Palette {
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
         parse.set_palette();
-        let mut palette = Vec::new();
-        for _ in 0..(parse.len() / 3) {
-            let red = parse.u8()?;
-            let green = parse.u8()?;
-            let blue = parse.u8()?;
-            palette.push(SRgb8::new(red, green, blue));
-        }
+
+        let buffer = parse.raw()?;
+        let mut reader = Reader::new(&buffer);
+        let palette = (0..(parse.len() / 3))
+            .map(|_| -> Result<_, DecoderError> {
+                let [r, g, b] = [reader.u8()?, reader.u8()?, reader.u8()?];
+
+                Ok(SRgb8::new(r, g, b))
+            })
+            .collect::<Result<_, _>>()?;
+
+        reader.end().unwrap();
         Ok(Chunk::Palette(Palette { palette }))
     }
 

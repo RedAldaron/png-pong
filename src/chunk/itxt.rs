@@ -1,9 +1,11 @@
 use std::io::{Read, Write};
 
+use parsenic::{Read as _, Reader};
+
 use super::Chunk;
 use crate::{
     consts, decode::Error as DecoderError, decoder::Parser,
-    encode::Error as EncoderError, encoder::Enc, zlib,
+    encode::Error as EncoderError, encoder::Enc, parsing::Read as _, zlib,
 };
 
 /// International Text Chunk Data (iTXt)
@@ -29,25 +31,44 @@ impl InternationalText {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> Result<Chunk, DecoderError> {
-        let key = parse.str()?;
-        if key.is_empty() || key.len() > 79 {
-            return Err(DecoderError::KeySize(key.len()));
-        }
-        let compressed = parse.u8()? != 0;
-        if parse.u8()? != 0 {
-            return Err(DecoderError::CompressionMethod);
-        }
-        let langtag = parse.str()?;
-        let transkey = parse.str()?;
-        let data = parse.vec(
-            parse.len() - (key.len() + langtag.len() + transkey.len() + 5),
-        )?;
+        let buffer = parse.raw()?;
+        let mut reader = Reader::new(&buffer);
+        let key = {
+            let key = reader.strz()?;
+            let key_len = key.len();
 
+            (1..=79)
+                .contains(&key_len)
+                .then_some(key)
+                .ok_or(DecoderError::KeySize(key_len))?
+        };
+        let compressed = match reader.u8()? {
+            0 => false,
+            1 => true,
+            // FIXME: More specific error
+            _ => return Err(DecoderError::CompressionMethod),
+        };
+        let _compression_method = {
+            let compression_method = reader.u8()?;
+
+            (compression_method == 0)
+                .then_some(compression_method)
+                .ok_or(DecoderError::CompressionMethod)?
+        };
+        let langtag = reader.strz()?;
+        let transkey = reader.strz()?;
+        let data = reader
+            .slice(
+                parse.len() - (key.len() + langtag.len() + transkey.len() + 5),
+            )?
+            .to_vec();
         let val = if compressed {
             String::from_utf8_lossy(&zlib::decompress(&data)?).to_string()
         } else {
             String::from_utf8_lossy(&data).to_string()
         };
+
+        reader.end().unwrap();
         Ok(Chunk::InternationalText(InternationalText {
             key,
             langtag,

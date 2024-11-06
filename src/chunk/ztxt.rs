@@ -1,7 +1,9 @@
 use std::io::{Read, Write};
 
+use parsenic::{Read as _, Reader};
+
 use super::{Chunk, DecoderError, DecoderResult, EncoderError, EncoderResult};
-use crate::{consts, decoder::Parser, encoder::Enc, zlib};
+use crate::{consts, decoder::Parser, encoder::Enc, zlib, parsing::Read as _};
 
 /// Compressed Text Chunk Data (zTXt)
 #[derive(Clone, Debug)]
@@ -40,16 +42,27 @@ impl CompressedText {
     pub(crate) fn parse<R: Read>(
         parse: &mut Parser<R>,
     ) -> DecoderResult<Chunk> {
-        let key = parse.str()?;
-        if parse.u8()? != 0 {
-            return Err(DecoderError::CompressionMethod);
-        }
-        let ztxt = parse.vec(parse.len() - (key.len() + 2))?;
-        let decoded = zlib::decompress(&ztxt)?;
-        if key.is_empty() || key.len() > 79 {
-            return Err(DecoderError::KeySize(key.len()));
-        }
-        let val = String::from_utf8_lossy(&decoded).to_string();
+        let buffer = parse.raw()?;
+        let mut reader = Reader::new(&buffer);
+        let key = {
+            let key = reader.strz()?;
+            let key_len = key.len();
+
+            (1..=79)
+                .contains(&key_len)
+                .then_some(key)
+                .ok_or(DecoderError::KeySize(key_len))?
+        };
+        let _compression_method = {
+            let compression_method = reader.u8()?;
+
+            (compression_method == 0)
+                .then_some(compression_method)
+                .ok_or(DecoderError::CompressionMethod)?
+        };
+        let ztxt = reader.slice(parse.len() - (key.len() + 2))?;
+        let decoded = zlib::decompress(ztxt)?;
+        let val = String::from_utf8_lossy(&decoded).into_owned();
 
         Ok(Chunk::CompressedText(CompressedText { key, val }))
     }
