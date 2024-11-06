@@ -2,9 +2,14 @@
 
 #### A pure Rust PNG/APNG encoder & decoder
 
-[![tests](https://github.com/AldaronLau/png_pong/workflows/tests/badge.svg)](https://github.com/AldaronLau/png_pong/actions?query=workflow%3Atests)
-[![docs](https://docs.rs/png_pong/badge.svg)](https://docs.rs/png_pong)
-[![crates.io](https://img.shields.io/crates/v/png_pong.svg)](https://crates.io/crates/png_pong)
+[![tests](https://github.com/AldaronLau/png_pong/actions/workflows/ci.yml/badge.svg)](https://github.com/AldaronLau/png_pong/actions/workflows/ci.yml)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/y/AldaronLau/png_pong)](https://github.com/AldaronLau/png_pong/)
+[![GitHub contributors](https://img.shields.io/github/contributors/AldaronLau/png_pong)](https://github.com/AldaronLau/png_pong/graphs/contributors)  
+[![Crates.io](https://img.shields.io/crates/v/png_pong)](https://crates.io/crates/png_pong)
+[![Crates.io](https://img.shields.io/crates/d/png_pong)](https://crates.io/crates/png_pong)
+[![Crates.io (recent)](https://img.shields.io/crates/dr/png_pong)](https://crates.io/crates/png_pong)  
+[![Crates.io](https://img.shields.io/crates/l/png_pong)](https://github.com/AldaronLau/png_pong/search?l=Text&q=license)
+[![Docs.rs](https://docs.rs/png_pong/badge.svg)](https://docs.rs/png_pong/)
 
 This is a pure Rust PNG image decoder and encoder taking inspiration from
 lodepng.  This crate allows easy reading and writing of PNG files without any
