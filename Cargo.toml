@@ -5,7 +5,7 @@ license = "Apache-2.0 OR Zlib"
 description = "A pure Rust PNG/APNG encoder & decoder"
 repository = "https://github.com/AldaronLau/png_pong"
 documentation = "https://docs.rs/png_pong"
-homepage = "https://github.com/AldaronLau/png_pong/blob/master/CHANGELOG.md"
+homepage = "https://github.com/AldaronLau/png_pong/releases"
 include = [
   "Cargo.toml",
   "README.md",

@@ -13,4 +13,4 @@ don't want to be doing work that might be rejected.
 
 ## git workflow
 
-Please file PR's against the `master` branch (it's the default, so super easy!).
+Please file PR's against the `v0` branch (it's the default, so super easy!).

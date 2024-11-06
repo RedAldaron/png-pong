@@ -323,7 +323,7 @@ dependencies = [
 
 [[package]]
 name = "png_pong"
-version = "0.9.2"
+version = "0.9.3"
 dependencies = [
  "criterion",
  "miniz_oxide",
